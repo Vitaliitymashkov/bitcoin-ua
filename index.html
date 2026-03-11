@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitcoin Price & Ukraine Aid — 2010–2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090f;
+    --surface: #11111c;
+    --border: #1e1e2e;
+    --accent-btc: #f7931a;
+    --accent-ua: #ffd700;
+    --text-primary: #e8e8f0;
+    --text-muted: #5a5a7a;
+    --text-dim: #3a3a5a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+  }
+
+  header {
+    margin-bottom: 48px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(24px, 4vw, 44px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+
+  h1 span.btc { color: var(--accent-btc); }
+  h1 span.ua  { color: var(--accent-ua); }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 600px;
+  }
+
+  /* ── CHART CARD ── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 40px 40px 32px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.9s ease 0.1s both;
+    box-shadow: 0 0 100px rgba(247,147,26,0.06), 0 0 60px rgba(255,215,0,0.04);
+  }
+
+  .chart-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-btc), var(--accent-ua), transparent);
+  }
+
+  .legend {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+  }
+
+  .legend-swatch {
+    width: 26px; height: 3px;
+    border-radius: 2px; flex-shrink: 0;
+  }
+  .legend-swatch.btc { background: var(--accent-btc); }
+  .legend-swatch.ua  { background: linear-gradient(90deg, #005bbb, var(--accent-ua)); }
+  .legend-label { color: var(--text-primary); }
+  .legend-axis  { color: var(--text-muted); font-size: 10px; }
+
+  .chart-wrap {
+    position: relative;
+    height: 460px;
+  }
+
+  .note {
+    margin-top: 20px;
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.9;
+    letter-spacing: 0.04em;
+  }
+  .note em { color: var(--text-muted); font-style: normal; }
+
+  /* ── EVENTS SECTION ── */
+  .events-section {
+    margin-top: 44px;
+    animation: fadeUp 1s ease 0.2s both;
+  }
+
+  .events-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .events-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .events-grid { grid-template-columns: 1fr; }
+  }
+
+  .peak-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 28px 28px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .peak-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .peak-block.btc-peak::before { background: linear-gradient(90deg, var(--accent-btc), transparent); }
+  .peak-block.ua-peak::before  { background: linear-gradient(90deg, #005bbb, var(--accent-ua), transparent); }
+
+  .peak-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .btc-peak .peak-label { color: var(--accent-btc); }
+  .ua-peak  .peak-label { color: var(--accent-ua); }
+
+  .peak-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 18px;
+    letter-spacing: -0.01em;
+  }
+
+  .btc-peak .peak-value { color: var(--accent-btc); }
+  .ua-peak  .peak-value { color: #e8e8f0; }
+
+  .event-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .event-item {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .event-year {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 2px;
+    text-align: center;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    margin-top: 1px;
+  }
+
+  .btc-peak .event-year { background: rgba(247,147,26,0.12); color: var(--accent-btc); }
+  .ua-peak  .event-year { background: rgba(0,91,187,0.2); color: #6aaeff; }
+
+  .event-text {
+    font-size: 11px;
+    color: #b0b0cc;
+    line-height: 1.6;
+  }
+
+  .event-text strong {
+    color: var(--text-primary);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 1px;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    margin-top: 48px;
+    animation: fadeUp 1s ease 0.4s both;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .wrapper { padding: 32px 16px 60px; }
+    .chart-card { padding: 24px 16px 20px; }
+    .chart-wrap { height: 320px; }
+    .peak-block { padding: 20px 16px 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <p class="eyebrow">Data Visualization + Event Analysis / 2010 – 2026</p>
+    <h1><span class="btc">Bitcoin</span> Price &amp;<br><span class="ua">Ukraine</span> Aid</h1>
+    <p class="subtitle">Two peaks, two stories. Each surge was driven by a distinct cluster of events — scroll below the chart to explore what caused them.</p>
+  </header>
+
+  <div class="chart-card">
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-swatch btc"></div>
+        <span class="legend-label">Bitcoin Price</span>
+        <span class="legend-axis">— right axis, USD</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch ua"></div>
+        <span class="legend-label">International Aid to Ukraine</span>
+        <span class="legend-axis">— left axis, USD billions</span>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="combinedChart"></canvas>
+    </div>
+    <p class="note">
+      <em>Bitcoin:</em> Approximate year-end prices. 2026 = early March. &nbsp;|&nbsp;
+      <em>Ukraine Aid:</em> Military, financial &amp; humanitarian commitments. Pre-2022 = IMF/development flows. 2025–26 partial. &nbsp;|&nbsp;
+      <em>Sources:</em> CoinMarketCap · Kiel Institute Ukraine Support Tracker · OECD · IMF · CFR.
+    </p>
+  </div>
+
+  <!-- Events Section -->
+  <div class="events-section">
+    <div class="events-title">What caused the two peaks?</div>
+    <div class="events-grid">
+
+      <!-- Bitcoin Peak 2021 -->
+      <div class="peak-block btc-peak">
+        <div class="peak-label">Bitcoin Peak</div>
+        <div class="peak-value">~$46k–69k &nbsp;(2021)</div>
+        <ul class="event-list">
+          <li class="event-item">
+            <span class="event-year">2020</span>
+            <span class="event-text">
+              <strong>3rd Halving (May 2020)</strong>
+              Block reward cut from 12.5 to 6.25 BTC, tightening supply at a time of surging demand.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2020</span>
+            <span class="event-text">
+              <strong>COVID-era money printing</strong>
+              Massive global stimulus and near-zero interest rates drove investors toward inflation hedges. Bitcoin absorbed a large share of that capital flight.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2020</span>
+            <span class="event-text">
+              <strong>MicroStrategy &amp; Tesla</strong>
+              MicroStrategy purchased over $1B in BTC. Tesla followed with $1.5B. Corporate treasury adoption legitimized Bitcoin as an institutional asset for the first time.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2021</span>
+            <span class="event-text">
+              <strong>DeFi &amp; NFT boom</strong>
+              Explosive growth of decentralized finance protocols and NFT markets funneled massive speculative capital into the entire crypto ecosystem, lifting BTC.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2021</span>
+            <span class="event-text">
+              <strong>El Salvador legal tender</strong>
+              In September 2021 El Salvador adopted Bitcoin as legal tender — the first country to do so — providing a major sentiment boost and symbolic legitimacy.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2021</span>
+            <span class="event-text">
+              <strong>First Bitcoin Futures ETF (USA)</strong>
+              ProShares' Bitcoin futures ETF listed on the NYSE in October 2021, opening the door to mainstream investors and triggering the final push toward $69k.
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Ukraine Aid Peak 2023 -->
+      <div class="peak-block ua-peak">
+        <div class="peak-label">Ukraine Aid Peak</div>
+        <div class="peak-value">~$105B &nbsp;(2023)</div>
+        <ul class="event-list">
+          <li class="event-item">
+            <span class="event-year">Feb 2022</span>
+            <span class="event-text">
+              <strong>Full-scale Russian invasion</strong>
+              Russia launched a large-scale ground invasion on 24 February 2022, triggering an immediate and unprecedented international response. Aid exploded from ~$3B to ~$93B in a single year.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2022</span>
+            <span class="event-text">
+              <strong>US Congress emergency packages</strong>
+              The US passed four aid bills totalling ~$113B across 2022–2023, by far the largest single-country contributor. Packages covered military hardware, direct budget support and humanitarian relief.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2022</span>
+            <span class="event-text">
+              <strong>NATO &amp; EU collective mobilisation</strong>
+              NATO allies shed long-held reluctance to supply heavy weapons. The EU activated the European Peace Facility to fund lethal aid for the first time in its history.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2023</span>
+            <span class="event-text">
+              <strong>EU €18B Macro-Financial Assistance+</strong>
+              The European Commission issued EU-Bonds to raise €18B for Ukraine's budget, disbursing the full amount by December 2023 to keep the Ukrainian state functioning under wartime conditions.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2023</span>
+            <span class="event-text">
+              <strong>ATACMS long-range missiles approved</strong>
+              The Biden administration approved transfer of long-range precision missiles capable of striking targets ~200 miles inside Russian territory — a major escalation in aid quality.
+            </span>
+          </li>
+          <li class="event-item">
+            <span class="event-year">2023</span>
+            <span class="event-text">
+              <strong>F-16 transfer green-lit</strong>
+              In summer 2023, the US allowed European allies to supply US-made F-16 fighter jets — marking the transition to supplying modern Western air power.
+            </span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>COMPILED FROM PUBLIC SOURCES &nbsp;·&nbsp; FOR INFORMATIONAL PURPOSES &nbsp;·&nbsp; VALUES ARE APPROXIMATE</footer>
+</div>
+
+<script>
+const years = [2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+
+const btcPrices = [
+  0.3, 4.7, 13.5, 750, 320, 430, 960,
+  13800, 3700, 7200, 29000, 46000,
+  16500, 42000, 96000, 102000, 85000
+];
+
+const uaAid = [
+  0.5, 0.6, 0.7, 0.8, 3.1, 6.2, 3.5,
+  2.8, 2.3, 2.9, 3.0, 3.4,
+  93.0, 105.0, 88.0, 72.0, 55.0
+];
+
+Chart.defaults.color = '#5a5a7a';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const ctx = document.getElementById('combinedChart').getContext('2d');
+
+const btcGrad = ctx.createLinearGradient(0, 0, 0, 460);
+btcGrad.addColorStop(0,    'rgba(247,147,26,0.28)');
+btcGrad.addColorStop(0.65, 'rgba(247,147,26,0.05)');
+btcGrad.addColorStop(1,    'rgba(247,147,26,0)');
+
+const barColors = years.map(y =>
+  y < 2022  ? 'rgba(0,91,187,0.72)' :
+  y === 2022 ? 'rgba(255,215,0,0.88)' :
+  y === 2023 ? 'rgba(0,180,255,0.90)' :
+               'rgba(0,130,220,0.78)'
+);
+const barBorders = years.map(y =>
+  y < 2022  ? '#005bbb' :
+  y === 2022 ? '#ffd700' :
+  y === 2023 ? '#00b4ff' :
+               '#0082dc'
+);
+
+// Peak annotation plugin
+const peakAnnotationPlugin = {
+  id: 'peakAnnotations',
+  afterDraw(chart) {
+    const { ctx, scales, chartArea } = chart;
+    const xScale = scales.x;
+    const yBtc  = scales.yBtc;
+    const yAid  = scales.yAid;
+
+    // --- BTC peak: 2021 (index 11) ---
+    const btcPeakX = xScale.getPixelForValue(2021);
+    const btcPeakY = yBtc.getPixelForValue(46000);
+
+    ctx.save();
+    // Dashed vertical line
+    ctx.setLineDash([3, 4]);
+    ctx.strokeStyle = 'rgba(247,147,26,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(btcPeakX, chartArea.top);
+    ctx.lineTo(btcPeakX, btcPeakY - 12);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Label box
+    const btcLabel = '₿ PEAK 2021';
+    ctx.font = '500 10px "DM Mono", monospace';
+    const btcW = ctx.measureText(btcLabel).width + 14;
+    const btcLX = Math.min(btcPeakX - btcW / 2, chartArea.right - btcW - 4);
+    const btcLY = chartArea.top + 6;
+    ctx.fillStyle = 'rgba(247,147,26,0.15)';
+    roundRect(ctx, btcLX, btcLY, btcW, 18, 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(247,147,26,0.5)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, btcLX, btcLY, btcW, 18, 2);
+    ctx.stroke();
+    ctx.fillStyle = '#f7931a';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(btcLabel, btcLX + btcW / 2, btcLY + 9);
+    ctx.restore();
+
+    // --- UA peak: 2023 (index 13) ---
+    const uaPeakX = xScale.getPixelForValue(2023);
+    const uaPeakY = yAid.getPixelForValue(105);
+
+    ctx.save();
+    ctx.setLineDash([3, 4]);
+    ctx.strokeStyle = 'rgba(0,160,240,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(uaPeakX, chartArea.top);
+    ctx.lineTo(uaPeakX, uaPeakY - 12);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const uaLabel = '🇺🇦 AID PEAK 2023';
+    ctx.font = '500 10px "DM Mono", monospace';
+    const uaW = ctx.measureText(uaLabel).width + 14;
+    const uaLX = Math.min(uaPeakX - uaW / 2, chartArea.right - uaW - 4);
+    const uaLY = chartArea.top + 30;
+    ctx.fillStyle = 'rgba(0,130,220,0.15)';
+    roundRect(ctx, uaLX, uaLY, uaW, 18, 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,160,240,0.5)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, uaLX, uaLY, uaW, 18, 2);
+    ctx.stroke();
+    ctx.fillStyle = '#00b4ff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(uaLabel, uaLX + uaW / 2, uaLY + 9);
+    ctx.restore();
+  }
+};
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+new Chart(ctx, {
+  plugins: [peakAnnotationPlugin],
+  data: {
+    labels: years,
+    datasets: [
+      {
+        type: 'bar',
+        label: 'Aid to Ukraine (USD B)',
+        data: uaAid,
+        backgroundColor: barColors,
+        borderColor: barBorders,
+        borderWidth: 1.5,
+        borderRadius: 2,
+        borderSkipped: false,
+        yAxisID: 'yAid',
+        order: 2,
+      },
+      {
+        type: 'line',
+        label: 'Bitcoin Price (USD)',
+        data: btcPrices,
+        borderColor: '#f7931a',
+        borderWidth: 2.5,
+        backgroundColor: btcGrad,
+        fill: true,
+        tension: 0.38,
+        pointBackgroundColor: '#f7931a',
+        pointBorderColor: '#09090f',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        yAxisID: 'yBtc',
+        order: 1,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#11111c',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        titleColor: '#e8e8f0',
+        bodyColor: '#a0a0c0',
+        padding: 14,
+        titleFont: { size: 12, weight: '600' },
+        callbacks: {
+          label: ctx => {
+            if (ctx.dataset.yAxisID === 'yBtc')
+              return `  BTC  $${ctx.parsed.y.toLocaleString()}`;
+            return `  Aid  $${ctx.parsed.y.toFixed(1)}B`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(255,255,255,0.04)' },
+        border: { color: 'rgba(255,255,255,0.08)' },
+        ticks: { maxRotation: 0 }
+      },
+      yAid: {
+        type: 'linear',
+        position: 'left',
+        min: 0,
+        grid: { color: 'rgba(255,255,255,0.04)' },
+        border: { color: 'rgba(0,91,187,0.4)' },
+        ticks: {
+          color: '#4a7abf',
+          callback: val => '$' + val + 'B'
+        },
+        title: {
+          display: true,
+          text: 'Aid (USD Billions)',
+          color: '#4a7abf',
+          font: { size: 10 },
+          padding: { bottom: 8 }
+        }
+      },
+      yBtc: {
+        type: 'linear',
+        position: 'right',
+        min: 0,
+        grid: { drawOnChartArea: false },
+        border: { color: 'rgba(247,147,26,0.35)' },
+        ticks: {
+          color: '#c87010',
+          callback: val => {
+            if (val >= 1000) return '$' + (val / 1000).toFixed(0) + 'k';
+            return '$' + val;
+          }
+        },
+        title: {
+          display: true,
+          text: 'Bitcoin (USD)',
+          color: '#c87010',
+          font: { size: 10 },
+          padding: { bottom: 8 }
+        }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
