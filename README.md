@@ -3,7 +3,7 @@
 An interactive dual-axis chart comparing Bitcoin's price history with international aid to Ukraine (2010–2026), with annotated peak events.
 
 **Live demo:** `https://<your-username>.github.io/<your-repo-name>/`
-
+https://Vitaliitymashkov.github.io/bitcoin-ua/
 ---
 
 ## 🚀 Deploy to GitHub Pages (step by step)
